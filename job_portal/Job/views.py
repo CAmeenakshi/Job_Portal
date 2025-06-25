@@ -1,9 +1,8 @@
-from django.shortcuts import render
-from rest_framework import viewsets, permissions, status
-from rest_framework.response import Response
+
+from rest_framework import viewsets, permissions,serializers
 from rest_framework.exceptions import PermissionDenied
-from .models import Job
-from .serializers import JobSerializer
+from .models import Job,Application,SavedJob
+from .serializers import JobSerializer,ApplicationSerializer,SavedJobSerializer
 
 class JobViewSet(viewsets.ModelViewSet):
     serializer_class = JobSerializer
@@ -34,3 +33,31 @@ class JobViewSet(viewsets.ModelViewSet):
         if self.request.user != instance.employer:
             raise PermissionDenied("Only the employer who created this job can delete it.")
         instance.delete()
+
+class ApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = ApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Application.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        job = serializer.validated_data['job']
+        user = self.request.user
+        if Application.objects.filter(job=job, user=user).exists():
+            raise serializers.ValidationError("You have already applied for this job.")
+        serializer.save(user=user)
+
+class SavedJobViewSet(viewsets.ModelViewSet):
+    serializer_class = SavedJobSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedJob.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        job = serializer.validated_data['job']
+        if SavedJob.objects.filter(user=self.request.user, job=job).exists():
+            raise serializers.ValidationError("You have already saved this job.")
+        serializer.save(user=self.request.user)
+

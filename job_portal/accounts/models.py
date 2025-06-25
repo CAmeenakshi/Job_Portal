@@ -37,6 +37,7 @@ class JobSeekerProfile(models.Model):
     skills = models.TextField(blank=True, null=True)
     experience = models.PositiveIntegerField(default=0)
     education = models.TextField(blank = True,null = True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.email
@@ -47,6 +48,7 @@ class EmployerProfile(models.Model):
     company_logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
     company_website = models.URLField(blank=True, null=True)
     description = models.TextField(blank=True,null=True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.company_name

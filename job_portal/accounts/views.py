@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status,views,permissions
+from rest_framework import viewsets, status,views,permissions,serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from .serializers import UserSignupSerializer,JobSeekerProfileSerializer, EmployerProfileSerializer
@@ -28,28 +28,45 @@ class LogoutView(views.APIView):
         
 #JobseekerProfile View
 class JobSeekerProfileViewSet(viewsets.ModelViewSet):
-    queryset = JobSeekerProfile.objects.all()
     serializer_class = JobSeekerProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Only return profile of the current user
-        return JobSeekerProfile.objects.filter(user=self.request.user)
-
+        # Return only the logged-in user's active (non-deleted) profile
+        return JobSeekerProfile.objects.filter(user=self.request.user, is_deleted=False)
 
     def perform_create(self, serializer):
+        if JobSeekerProfile.objects.filter(user=self.request.user, is_deleted=False).exists():
+            raise serializers.ValidationError("Profile already exists for this user.")
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Soft delete: just set is_deleted = True
+        instance = self.get_object()
+        instance.is_deleted = True
+        instance.save()
+        return Response({"detail": "Profile deleted successfully (soft delete)."},status=status.HTTP_204_NO_CONTENT)
 
 #Employerprofile View
 
 class EmployerProfileViewSet(viewsets.ModelViewSet):
-    queryset = EmployerProfile.objects.all()
     serializer_class = EmployerProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return EmployerProfile.objects.filter(user=self.request.user)
+        # Only return profiles that are not soft deleted and belong to current user
+        return EmployerProfile.objects.filter(user=self.request.user, is_deleted=False)
 
     def perform_create(self, serializer):
+        if JobSeekerProfile.objects.filter(user=self.request.user, is_deleted=False).exists():
+            raise serializers.ValidationError("Profile already exists for this user.")
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Perform soft delete by setting is_deleted to True
+        instance = self.get_object()
+        instance.is_deleted = True
+        instance.save()
+        return Response({"detail": "Employer profile deleted successfully (soft delete)."}, status=status.HTTP_204_NO_CONTENT)
+
 
