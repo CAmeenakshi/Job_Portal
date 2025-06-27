@@ -1,8 +1,9 @@
 
 from django.db import models
 from accounts.models import User  # Assuming custom user model with employer role
-# Create your models here.
+from django.conf import settings
 
+# Create models for Job .
 class Job(models.Model):
     JOB_TYPE_CHOICES = (
         ('full-time', 'Full Time'),
@@ -22,21 +23,30 @@ class Job(models.Model):
 
     def __str__(self):
         return self.title
-    
+
+# Create models for Application .
 class Application(models.Model):
+    STATUS_CHOICES = [
+    ('applied', 'Applied'),
+    ('under_review', 'Under Review'),
+    ('shortlisted', 'Shortlisted'),
+    ('rejected', 'Rejected'),
+    ('hired', 'Hired'),
+]
+
     job = models.ForeignKey(Job, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     skills = models.TextField(blank=True)  # Optional field to enter skills
     cover_letter = models.TextField(blank=True)  # Optional cover letter
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)  # File upload
     applied_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
 
     class Meta:
         unique_together = ['job', 'user']  # Prevent multiple applications
-from django.db import models
-from django.conf import settings
-from .models import Job  # Adjust the import if Job is in another app
 
+
+# Create models for SavedJob .
 class SavedJob(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     job = models.ForeignKey(Job, on_delete=models.CASCADE)

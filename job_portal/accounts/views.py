@@ -58,7 +58,7 @@ class EmployerProfileViewSet(viewsets.ModelViewSet):
         return EmployerProfile.objects.filter(user=self.request.user, is_deleted=False)
 
     def perform_create(self, serializer):
-        if JobSeekerProfile.objects.filter(user=self.request.user, is_deleted=False).exists():
+        if EmployerProfile.objects.filter(user=self.request.user, is_deleted=False).exists():
             raise serializers.ValidationError("Profile already exists for this user.")
         serializer.save(user=self.request.user)
 

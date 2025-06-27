@@ -39,7 +39,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Application.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.role == 'employer':
+        # Employers should see applications for jobs they have posted
+         return Application.objects.filter(job__employer=user)
+        elif user.role == 'jobseeker':
+        # Job seekers should only see applications they have submitted
+         return Application.objects.filter(user=user)
+        return Application.objects.none()  # For safety, if role doesn't match
+
 
     def perform_create(self, serializer):
         job = serializer.validated_data['job']
@@ -47,6 +55,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if Application.objects.filter(job=job, user=user).exists():
             raise serializers.ValidationError("You have already applied for this job.")
         serializer.save(user=user)
+    def update(self, request, *args, **kwargs):
+        application = self.get_object()
+
+        if request.user.role == 'employer':
+            if application.job.employer != request.user:
+                raise PermissionDenied("You are not allowed to update this application.")
+        elif request.user.role == 'jobseeker':
+            # prevent seekers from changing status
+            if 'status' in request.data:
+                raise PermissionDenied("Job seekers cannot update application status.")
+        
+        return super().update(request, *args, **kwargs)
 
 class SavedJobViewSet(viewsets.ModelViewSet):
     serializer_class = SavedJobSerializer
