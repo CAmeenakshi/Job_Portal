@@ -51,4 +51,5 @@ class EmployerProfile(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.company_name
+        return self.user.email  # or self.user.get_full_name()
+
