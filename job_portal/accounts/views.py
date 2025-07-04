@@ -60,6 +60,26 @@ class ForgotPasswordView(APIView):
             except User.DoesNotExist:
                 return Response({'error': 'User with this email does not exist.'}, status=404)
         return Response(serializer.errors, status=400)
+    
+ #RESEND CODE
+ # ------------------------------------
+class ResendCodeView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+                code_obj, created = PasswordResetCode.objects.get_or_create(user=user)
+                code_obj.generate_code()  # ✅ Update the code and timestamp
+                return Response({
+                    'message': 'Verification code resent successfully.',
+                    'code': code_obj.code  # ✅ Only show for local testing
+                }, status=200)
+            except User.DoesNotExist:
+                return Response({'error': 'User with this email does not exist.'}, status=404)
+        return Response(serializer.errors, status=400)
+
 
 
 # VERIFY CODE
