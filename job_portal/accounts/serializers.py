@@ -1,39 +1,47 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import RoleEnum
-from .models import JobSeekerProfile, EmployerProfile
-
+from .models import RoleEnum, JobSeekerProfile, EmployerProfile
 
 User = get_user_model()
 
+# --------------------- USER SIGNUP ------------------------
 class UserSignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only = True)
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['email','full_name','phone_number','role','password']
+        fields = ['email', 'full_name', 'phone_number', 'role', 'password']
 
-    
-    
+    def validate_role(self, value):
+        role_values = [role.value for role in RoleEnum]
+        if value not in role_values:
+            raise serializers.ValidationError("Invalid role.")
+        return value
+
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         instance = self.Meta.model(**validated_data)
-        
-        # Adding the below line made it work for me.
-        instance.is_active = True
-        if password is not None:
-            # Set password does the hash, so you don't need to call make_password 
+        instance.is_active = True  # Optional: sometimes needed for manual activation
+        if password:
             instance.set_password(password)
         instance.save()
         return instance
-    
-    def validate_role(self,value):
-        role_values = [role.value for role in RoleEnum]
-        if value not in role_values:
-            raise serializers.validationError("Invalid role.")
-        return value
-    
-    
+
+# --------------------- FORGOT PASSWORD FLOW ------------------------
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class VerifyCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True)
+
+# --------------------- PROFILES ------------------------
 
 class JobSeekerProfileSerializer(serializers.ModelSerializer):
     class Meta:
